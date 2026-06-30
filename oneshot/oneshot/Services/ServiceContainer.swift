@@ -17,6 +17,7 @@ class ServiceContainer: ObservableObject {
     let userService: UserService
     let pairService: PairService
     let duoInviteService: DuoInviteService
+    let browseService: BrowseService
     let matchService: MatchService
     let placesService: PlacesService
 
@@ -29,6 +30,7 @@ class ServiceContainer: ObservableObject {
         let user = UserService(authService: auth)
         let pair = PairService(authService: auth, userService: user)
         let duoInvite = DuoInviteService(authService: auth)
+        let browse = BrowseService(authService: auth)
         let match = MatchService(authService: auth, userService: user, pairService: pair)
         let places = PlacesService()
 
@@ -37,6 +39,7 @@ class ServiceContainer: ObservableObject {
         self.userService = user
         self.pairService = pair
         self.duoInviteService = duoInvite
+        self.browseService = browse
         self.matchService = match
         self.placesService = places
 

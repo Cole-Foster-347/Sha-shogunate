@@ -1,0 +1,235 @@
+import SwiftUI
+import Combine
+
+// MARK: - View Model
+
+@MainActor
+final class BrowseViewModel: ObservableObject {
+    @Published var duos: [DuoProfileDTO] = []
+    @Published var currentIndex = 0
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let service: BrowseService?
+
+    /// Live init — fetches from the canonical backend.
+    init(service: BrowseService) { self.service = service }
+
+    /// Sample init for SwiftUI previews / harnesses (no network).
+    init(sampleDuos: [DuoProfileDTO]) {
+        self.service = nil
+        self.duos = sampleDuos
+    }
+
+    var isExhausted: Bool { currentIndex >= duos.count }
+
+    /// Up to 3 cards from the current index, nearest first.
+    var visibleCards: [(depth: Int, duo: DuoProfileDTO)] {
+        guard currentIndex < duos.count else { return [] }
+        let end = min(currentIndex + 3, duos.count)
+        return (currentIndex..<end).map { (depth: $0 - currentIndex, duo: duos[$0]) }
+    }
+
+    func load() async {
+        guard let service else { return } // sample VM: keep injected duos
+        isLoading = true
+        errorMessage = nil
+        do {
+            duos = try await service.fetchBrowseableDuos()
+            currentIndex = 0
+            // TODO(analytics): fire profile_view (§10) for the first shown card once an
+            // analytics SDK is wired (none is integrated yet).
+        } catch {
+            print("❌ Browse load error: \(error)")
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    /// Advance past the top card. A swipe in either direction just advances for now
+    /// (liking is the next ticket — no like_intent writes here).
+    func advance() {
+        guard currentIndex < duos.count else { return }
+        currentIndex += 1
+        // TODO(analytics): fire profile_view (§10) for the newly shown card.
+    }
+}
+
+// MARK: - Browse View
+
+struct BrowseView: View {
+    @StateObject private var vm: BrowseViewModel
+
+    /// Defaults to the live service; inject a sample VM for previews/harnesses.
+    init(viewModel: BrowseViewModel? = nil) {
+        _vm = StateObject(wrappedValue: viewModel
+            ?? BrowseViewModel(service: ServiceContainer.shared.browseService))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(.systemGroupedBackground).ignoresSafeArea()
+
+                if vm.isLoading {
+                    ProgressView()
+                } else if let msg = vm.errorMessage, vm.duos.isEmpty {
+                    BrowseMessageView(systemImage: "exclamationmark.triangle",
+                                      title: "Couldn't load duos", subtitle: msg)
+                } else if vm.isExhausted {
+                    BrowseEmptyView()
+                } else {
+                    BrowseCardStack(vm: vm)
+                }
+            }
+            .navigationTitle("Browse")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Image(systemName: "person.2.fill").foregroundStyle(.pink.gradient)
+                }
+            }
+            .task { await vm.load() }
+            .refreshable { await vm.load() }
+        }
+    }
+}
+
+// MARK: - Card Stack
+
+struct BrowseCardStack: View {
+    @ObservedObject var vm: BrowseViewModel
+    @State private var topOffset: CGSize = .zero
+
+    var body: some View {
+        ZStack {
+            ForEach(vm.visibleCards.reversed(), id: \.duo.id) { item in
+                BrowseDuoCard(duo: item.duo)
+                    .scaleEffect(item.depth == 0 ? 1 : 1 - CGFloat(item.depth) * 0.04)
+                    .offset(y: CGFloat(item.depth) * 10)
+                    .offset(item.depth == 0 ? topOffset : .zero)
+                    .rotationEffect(.degrees(item.depth == 0 ? Double(topOffset.width / 20) : 0))
+                    .gesture(item.depth == 0 ? dragGesture : nil)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: topOffset)
+                    .animation(.easeInOut, value: vm.currentIndex)
+            }
+        }
+        .padding()
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { topOffset = $0.translation }
+            .onEnded { value in
+                let threshold: CGFloat = 100
+                if abs(value.translation.width) > threshold {
+                    // Fling the card off, then advance (no like action yet).
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        topOffset = CGSize(width: value.translation.width > 0 ? 600 : -600,
+                                           height: value.translation.height)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        vm.advance()
+                        topOffset = .zero
+                    }
+                } else {
+                    withAnimation { topOffset = .zero }
+                }
+            }
+    }
+}
+
+// MARK: - Duo Card
+
+struct BrowseDuoCard: View {
+    let duo: DuoProfileDTO
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .bottomLeading) {
+                photoPlaceholder
+
+                LinearGradient(colors: [.clear, .black.opacity(0.65)],
+                               startPoint: .center, endPoint: .bottom)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    // CLAUDE.md §9 browse line
+                    Text("IRL > DMs")
+                        .font(.caption.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+
+                    if let bio = duo.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.title3.weight(.semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(3)
+                    }
+                }
+                .padding(20)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        }
+        .onAppear {
+            // TODO(analytics): fire profile_view (§10) for this duo once analytics exists.
+        }
+    }
+
+    /// Placeholder art. TODO(photos): when `duo.photos` is non-empty, load the first photo
+    /// via a Storage SIGNED URL (CLAUDE.md §4 — signed/expiring URLs only, never public).
+    /// No bucket/photos yet, so we render a gradient placeholder.
+    private var photoPlaceholder: some View {
+        LinearGradient(colors: [.pink.opacity(0.75), .purple.opacity(0.75)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay(
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 72))
+                    .foregroundColor(.white.opacity(0.85))
+            )
+    }
+}
+
+// MARK: - Empty / message states
+
+struct BrowseEmptyView: View {
+    var body: some View {
+        // TODO(copy): no §9 line fits an empty browse stack; placeholder copy for now.
+        BrowseMessageView(systemImage: "checkmark.circle",
+                          title: "You're all caught up",
+                          subtitle: "No more duos to show right now. Check back soon.")
+    }
+}
+
+struct BrowseMessageView: View {
+    let systemImage: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: systemImage)
+                .font(.system(size: 60))
+                .foregroundStyle(.pink.gradient)
+            Text(title).font(.title2.bold())
+            Text(subtitle)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+    }
+}
+
+#Preview {
+    BrowseView(viewModel: BrowseViewModel(sampleDuos: [
+        DuoProfileDTO(id: UUID(), memberA: UUID(), memberB: UUID(), photos: [],
+                      bio: "Coffee snobs who will out-talk your group chat.",
+                      activeWeek: 0, reliabilityScore: 0, status: "active", createdAt: Date()),
+        DuoProfileDTO(id: UUID(), memberA: UUID(), memberB: UUID(), photos: [],
+                      bio: "Hiking, board games, and questionable karaoke.",
+                      activeWeek: 0, reliabilityScore: 0, status: "active", createdAt: Date())
+    ]))
+}

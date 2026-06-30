@@ -13,7 +13,7 @@ struct MainTabView: View {
 
         var title: String {
             switch self {
-            case .discover: return "Discover"
+            case .discover: return "Browse"
             case .matches: return "Matches"
             case .duo: return "Duo"
             case .thingsToDo: return "To Do"
@@ -34,7 +34,8 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DiscoverView()
+            // Canonical Browse (reads duo_profile). Replaces the dead-schema DiscoverView.
+            BrowseView()
                 .tabItem {
                     Label(Tab.discover.title, systemImage: Tab.discover.icon)
                 }
