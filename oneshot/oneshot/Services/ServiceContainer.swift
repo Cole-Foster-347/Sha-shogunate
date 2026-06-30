@@ -20,6 +20,7 @@ class ServiceContainer: ObservableObject {
     let browseService: BrowseService
     let likeService: LikeService
     let matchService: MatchService
+    let chatService: ChatService
     let placesService: PlacesService
 
     // MARK: - Initialization
@@ -34,6 +35,7 @@ class ServiceContainer: ObservableObject {
         let browse = BrowseService(authService: auth)
         let like = LikeService(authService: auth)
         let match = MatchService(authService: auth, userService: user, pairService: pair)
+        let chat = ChatService(authService: auth)
         let places = PlacesService()
 
         self.authService = auth
@@ -44,6 +46,7 @@ class ServiceContainer: ObservableObject {
         self.browseService = browse
         self.likeService = like
         self.matchService = match
+        self.chatService = chat
         self.placesService = places
 
         print("✅ ServiceContainer initialized")

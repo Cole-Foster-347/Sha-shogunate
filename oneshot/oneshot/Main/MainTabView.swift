@@ -41,12 +41,12 @@ struct MainTabView: View {
                 }
                 .tag(Tab.discover)
 
-            MatchesView()
+            // Canonical matches + live chat (reads match/chat_message via Realtime).
+            MatchListView()
                 .tabItem {
                     Label(Tab.matches.title, systemImage: Tab.matches.icon)
                 }
                 .tag(Tab.matches)
-                .badge(appState.matches.filter { $0.unreadCount > 0 }.count)
 
             DuoManagementView()
                 .tabItem {

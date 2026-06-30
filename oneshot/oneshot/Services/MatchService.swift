@@ -19,6 +19,33 @@ class MatchService {
         self.pairService = pairService
     }
 
+    // MARK: - Canonical Matches (Roomeet backend)
+    // Reads the canonical `match` table. RLS (match_read) already restricts visibility
+    // to participants. Does not touch OneShot's dead swipe/pairs schema below.
+
+    /// Active matches involving the current user's active duo (CLAUDE.md §4/§7).
+    func fetchActiveMatches() async throws -> [DuoMatchDTO] {
+        let me = try authService.getCurrentUserId()
+        struct Row: Decodable {
+            let activeDuoId: UUID?
+            enum CodingKeys: String, CodingKey { case activeDuoId = "active_duo_id" }
+        }
+        let rows: [Row] = try await supabase
+            .from("app_user").select("active_duo_id")
+            .eq("id", value: me.uuidString)
+            .execute().value
+        guard let activeDuoId = rows.first?.activeDuoId else { return [] }
+
+        return try await supabase
+            .from("match")
+            .select()
+            .eq("status", value: "active")
+            .or("duo_a.eq.\(activeDuoId.uuidString),duo_b.eq.\(activeDuoId.uuidString)")
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
     // MARK: - Swiping
 
     /// Record a swipe action
