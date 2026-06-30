@@ -9,19 +9,30 @@ final class BrowseViewModel: ObservableObject {
     @Published var currentIndex = 0
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var likedTargets: Set<UUID> = []
 
     private let service: BrowseService?
+    private let likeService: LikeService?
+    private var activeDuoId: UUID?
 
     /// Live init — fetches from the canonical backend.
-    init(service: BrowseService) { self.service = service }
+    init(service: BrowseService, likeService: LikeService) {
+        self.service = service
+        self.likeService = likeService
+    }
 
     /// Sample init for SwiftUI previews / harnesses (no network).
     init(sampleDuos: [DuoProfileDTO]) {
         self.service = nil
+        self.likeService = nil
         self.duos = sampleDuos
     }
 
     var isExhausted: Bool { currentIndex >= duos.count }
+
+    var currentDuo: DuoProfileDTO? {
+        currentIndex < duos.count ? duos[currentIndex] : nil
+    }
 
     /// Up to 3 cards from the current index, nearest first.
     var visibleCards: [(depth: Int, duo: DuoProfileDTO)] {
@@ -35,6 +46,7 @@ final class BrowseViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
+            activeDuoId = try await service.currentActiveDuoId()
             duos = try await service.fetchBrowseableDuos()
             currentIndex = 0
             // TODO(analytics): fire profile_view (§10) for the first shown card once an
@@ -46,8 +58,21 @@ final class BrowseViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Advance past the top card. A swipe in either direction just advances for now
-    /// (liking is the next ticket — no like_intent writes here).
+    /// Like the top card: insert ONE like_intent for the current user, then advance.
+    /// The DB triggers handle promotion to duo_like / match (we don't here).
+    func like(_ duo: DuoProfileDTO) async {
+        defer { advance() }
+        guard let likeService, let from = activeDuoId else { return }
+        do {
+            _ = try await likeService.like(fromDuoId: from, targetDuoId: duo.id)
+            likedTargets.insert(duo.id) // dup taps are a no-op (23505 handled in the service)
+        } catch {
+            print("❌ Like error: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Advance past the top card (a pass — no write).
     func advance() {
         guard currentIndex < duos.count else { return }
         currentIndex += 1
@@ -63,7 +88,8 @@ struct BrowseView: View {
     /// Defaults to the live service; inject a sample VM for previews/harnesses.
     init(viewModel: BrowseViewModel? = nil) {
         _vm = StateObject(wrappedValue: viewModel
-            ?? BrowseViewModel(service: ServiceContainer.shared.browseService))
+            ?? BrowseViewModel(service: ServiceContainer.shared.browseService,
+                               likeService: ServiceContainer.shared.likeService))
     }
 
     var body: some View {
@@ -102,16 +128,42 @@ struct BrowseCardStack: View {
     @State private var topOffset: CGSize = .zero
 
     var body: some View {
-        ZStack {
-            ForEach(vm.visibleCards.reversed(), id: \.duo.id) { item in
-                BrowseDuoCard(duo: item.duo)
-                    .scaleEffect(item.depth == 0 ? 1 : 1 - CGFloat(item.depth) * 0.04)
-                    .offset(y: CGFloat(item.depth) * 10)
-                    .offset(item.depth == 0 ? topOffset : .zero)
-                    .rotationEffect(.degrees(item.depth == 0 ? Double(topOffset.width / 20) : 0))
-                    .gesture(item.depth == 0 ? dragGesture : nil)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: topOffset)
-                    .animation(.easeInOut, value: vm.currentIndex)
+        VStack(spacing: 16) {
+            ZStack {
+                ForEach(vm.visibleCards.reversed(), id: \.duo.id) { item in
+                    BrowseDuoCard(duo: item.duo)
+                        .scaleEffect(item.depth == 0 ? 1 : 1 - CGFloat(item.depth) * 0.04)
+                        .offset(y: CGFloat(item.depth) * 10)
+                        .offset(item.depth == 0 ? topOffset : .zero)
+                        .rotationEffect(.degrees(item.depth == 0 ? Double(topOffset.width / 20) : 0))
+                        .gesture(item.depth == 0 ? dragGesture : nil)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: topOffset)
+                        .animation(.easeInOut, value: vm.currentIndex)
+                }
+            }
+
+            // Pass / Like actions. A drag also just advances (pass) for now.
+            HStack(spacing: 40) {
+                Button {
+                    vm.advance()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.gray)
+                        .frame(width: 64, height: 64)
+                        .background(.ultraThickMaterial).clipShape(Circle())
+                }
+
+                Button {
+                    if let duo = vm.currentDuo { Task { await vm.like(duo) } }
+                } label: {
+                    // CLAUDE.md §9 copy: "Like"
+                    Label("Like", systemImage: "heart.fill")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 28).frame(height: 64)
+                        .background(.pink.gradient).clipShape(Capsule())
+                }
             }
         }
         .padding()
