@@ -23,6 +23,9 @@ class AppState: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
+    /// Invite code the creator (A) is currently sharing, while waiting for a partner to accept.
+    @Published var activeInviteCode: String?
+
     // MARK: - Onboarding Data (temporary)
     @Published var onboardingFirstName: String = ""
     @Published var onboardingBirthday: Date = Calendar.current.date(byAdding: .year, value: -21, to: Date()) ?? Date()
@@ -293,7 +296,77 @@ class AppState: ObservableObject {
         onboardingInterests = []
     }
 
-    // MARK: - Duo Management
+    // MARK: - Duo Invite Flow (canonical, invite-code)
+
+    /// Creator side (A): generate a code + pending duo_invite. Code is shown to A.
+    func createInvite() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let invite = try await services.duoInviteService.createInvite()
+            activeInviteCode = invite.code
+            print("✅ Invite code ready: \(invite.code)")
+        } catch {
+            print("❌ Create invite error: \(error)")
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    /// Accepter side (B): enter a code to join. Creates the duo and lands B in the app.
+    func acceptInvite(code: String) async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let duo = try await services.duoInviteService.acceptInvite(code: code)
+            landInDuo(duo)
+            print("✅ Joined duo: \(duo.id)")
+        } catch {
+            print("❌ Accept invite error: \(error)")
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    /// Creator side (A): after sharing the code, check whether B has accepted.
+    /// On success, sets A's active duo and lands A in the app. Returns true if accepted.
+    @discardableResult
+    func confirmInviteAccepted() async -> Bool {
+        guard let code = activeInviteCode else { return false }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            if let duo = try await services.duoInviteService.confirmInviteAccepted(code: code) {
+                landInDuo(duo)
+                print("✅ Creator landed in duo: \(duo.id)")
+                return true
+            }
+            errorMessage = "Waiting for your friend to accept the code…"
+            return false
+        } catch {
+            print("❌ Confirm invite error: \(error)")
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Map a freshly-formed duo into app state and complete onboarding.
+    private func landInDuo(_ duo: DuoProfileDTO) {
+        currentUser?.duoId = duo.id
+        currentDuo = Duo(
+            id: duo.id,
+            user1Id: duo.memberA,
+            user2Id: duo.memberB,
+            user1: nil,
+            user2: nil,
+            duoBio: duo.bio ?? "",
+            createdAt: duo.createdAt
+        )
+        activeInviteCode = nil
+        isOnboardingComplete = true
+    }
+
     func sendDuoInvite(to userId: UUID) async {
         guard let currentUser = currentUser else { return }
         isLoading = true

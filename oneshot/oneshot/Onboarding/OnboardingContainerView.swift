@@ -367,84 +367,151 @@ struct OnboardingProfileView: View {
 struct OnboardingDuoView: View {
     @EnvironmentObject var appState: AppState
 
+    enum Mode { case choose, create, join }
+    @State private var mode: Mode = .choose
+    @State private var enteredCode: String = ""
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                VStack(spacing: 16) {
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.pink.gradient)
-
-                    Text("Find Your Duo")
-                        .font(.largeTitle.bold())
-
-                    Text("Dating is better with friends! Team up with a bestie and match with other duos for epic double dates.")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 24)
-
-                // How it works
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("How it works")
-                        .font(.headline)
-
-                    DuoExplainerRow(
-                        icon: "1.circle.fill",
-                        title: "Invite a friend",
-                        description: "Send an invite to your bestie to form a duo"
-                    )
-
-                    DuoExplainerRow(
-                        icon: "2.circle.fill",
-                        title: "Create your duo profile",
-                        description: "Combine your vibes into one awesome profile"
-                    )
-
-                    DuoExplainerRow(
-                        icon: "3.circle.fill",
-                        title: "Match with other duos",
-                        description: "Swipe on other duos and plan double dates"
-                    )
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                Spacer(minLength: 100)
+        Group {
+            switch mode {
+            case .choose: chooseView
+            case .create: createView
+            case .join:   joinView
             }
-            .padding(.horizontal, 24)
         }
-        .safeAreaInset(edge: .bottom) {
+        .animation(.easeInOut, value: mode)
+    }
+
+    // MARK: A or B chooser
+
+    private var chooseView: some View {
+        VStack(spacing: 32) {
+            VStack(spacing: 16) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.pink.gradient)
+                Text("Find Your Duo")
+                    .font(.largeTitle.bold())
+                // CLAUDE.md §9 tagline
+                Text("Meet as a pair. 45 minutes. Zero pressure.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 24)
+
+            Spacer()
+
             VStack(spacing: 12) {
                 Button {
                     Task {
-                        await appState.completeOnboarding()
+                        await appState.createInvite()
+                        if appState.activeInviteCode != nil { mode = .create }
                     }
                 } label: {
-                    Label("Invite a Friend", systemImage: "paperplane.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.pink.gradient)
-                        .foregroundColor(.white)
+                    Label("Create a duo", systemImage: "plus.circle.fill")
+                        .font(.headline).frame(maxWidth: .infinity).padding()
+                        .background(.pink.gradient).foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
 
-                Button {
-                    Task {
-                        await appState.completeOnboarding()
-                    }
-                } label: {
-                    Text("Skip for now")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                Button { mode = .join } label: {
+                    Label("Join with a code", systemImage: "arrow.right.circle.fill")
+                        .font(.headline).frame(maxWidth: .infinity).padding()
+                        .background(Color(.secondarySystemBackground))
+                        .foregroundColor(.pink)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
-            .background(.ultraThinMaterial)
+        }
+    }
+
+    // MARK: Creator (A) — show code, wait for accept
+
+    private var createView: some View {
+        VStack(spacing: 28) {
+            Spacer()
+            Text("Share this code with your duo partner")
+                .font(.headline).multilineTextAlignment(.center)
+
+            Text(appState.activeInviteCode ?? "…")
+                .font(.system(size: 44, weight: .bold, design: .monospaced))
+                .padding(.vertical, 24).padding(.horizontal, 32)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            Text("They enter it on their phone to form your duo. Tap Continue once they've accepted.")
+                .font(.subheadline).multilineTextAlignment(.center)
+                .foregroundStyle(.secondary).padding(.horizontal, 32)
+
+            if let msg = appState.errorMessage {
+                Text(msg).font(.footnote).foregroundColor(.secondary)
+                    .multilineTextAlignment(.center).padding(.horizontal, 32)
+            }
+
+            Spacer()
+
+            Button {
+                Task { await appState.confirmInviteAccepted() }
+            } label: {
+                Group {
+                    if appState.isLoading { ProgressView().tint(.white) }
+                    else { Text("Continue") }
+                }
+                .font(.headline).frame(maxWidth: .infinity).padding()
+                .background(.pink.gradient).foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .disabled(appState.isLoading)
+            .padding(.horizontal, 24).padding(.bottom, 24)
+        }
+    }
+
+    // MARK: Accepter (B) — enter code
+
+    private var joinView: some View {
+        VStack(spacing: 28) {
+            Spacer()
+            Text("Enter your partner's code")
+                .font(.headline)
+
+            TextField("PINE-4823", text: $enteredCode)
+                .font(.system(.title2, design: .monospaced))
+                .multilineTextAlignment(.center)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 32)
+
+            if let msg = appState.errorMessage {
+                Text(msg).font(.footnote).foregroundColor(.pink)
+                    .multilineTextAlignment(.center).padding(.horizontal, 32)
+            }
+
+            Spacer()
+
+            VStack(spacing: 12) {
+                Button {
+                    Task { await appState.acceptInvite(code: enteredCode) }
+                } label: {
+                    Group {
+                        if appState.isLoading { ProgressView().tint(.white) }
+                        else { Text("Join duo") }
+                    }
+                    .font(.headline).frame(maxWidth: .infinity).padding()
+                    .background(.pink.gradient).foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .disabled(appState.isLoading || enteredCode.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                Button { mode = .choose; appState.errorMessage = nil } label: {
+                    Text("Back").font(.subheadline).foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 24).padding(.bottom, 24)
         }
     }
 }
