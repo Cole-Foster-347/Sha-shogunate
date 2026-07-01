@@ -28,7 +28,7 @@ struct DiscoverView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Image(systemName: "person.2.fill")
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
                 }
             }
             .alert("It's a Match!", isPresented: $showMatchAlert) {
@@ -265,7 +265,7 @@ struct UserPhotoView: View {
                         Rectangle()
                             .fill(
                                 LinearGradient(
-                                    colors: [.pink.opacity(0.3), .purple.opacity(0.3)],
+                                    colors: [.uchicagoMaroon.opacity(0.3), .purple.opacity(0.3)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -331,7 +331,7 @@ struct ActionButtonsView: View {
             // Like button
             ActionButton(
                 icon: "heart.fill",
-                color: .pink,
+                color: .uchicagoMaroon,
                 size: 60
             ) {
                 onAction(.like)
@@ -365,7 +365,7 @@ struct EmptyDiscoveryView: View {
         VStack(spacing: 20) {
             Image(systemName: "sparkles")
                 .font(.system(size: 60))
-                .foregroundStyle(.pink.gradient)
+                .foregroundStyle(.uchicagoMaroon.gradient)
 
             Text("No More Duos")
                 .font(.title2.bold())
@@ -379,8 +379,8 @@ struct EmptyDiscoveryView: View {
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
                     .padding()
-                    .background(.pink.opacity(0.1))
-                    .foregroundColor(.pink)
+                    .background(.uchicagoMaroon.opacity(0.1))
+                    .foregroundColor(.uchicagoMaroon)
                     .clipShape(Capsule())
             }
         }
@@ -406,7 +406,7 @@ struct NoDuoPromptView: View {
             NavigationLink(destination: DuoManagementView()) {
                 Label("Find Your Duo", systemImage: "person.badge.plus")
                     .padding()
-                    .background(.pink.gradient)
+                    .background(.uchicagoMaroon.gradient)
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }

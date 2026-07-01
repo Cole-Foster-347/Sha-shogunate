@@ -62,7 +62,7 @@ struct CurrentDuoSection: View {
             NavigationLink(destination: DuoPreviewView(duo: duo)) {
                 HStack {
                     Image(systemName: "eye.fill")
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
 
                     VStack(alignment: .leading) {
                         Text("Preview Duo Profile")
@@ -87,7 +87,7 @@ struct CurrentDuoSection: View {
             NavigationLink(destination: EditDuoBioView(duo: duo)) {
                 HStack {
                     Image(systemName: "pencil")
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
 
                     VStack(alignment: .leading) {
                         Text("Edit Duo Bio")
@@ -151,11 +151,11 @@ struct DuoPartnerCard: View {
                         .scaledToFill()
                 } placeholder: {
                     Circle()
-                        .fill(Color.pink.opacity(0.2))
+                        .fill(Color.uchicagoMaroon.opacity(0.2))
                         .overlay {
                             Text(user.firstName.prefix(1))
                                 .font(.title)
-                                .foregroundColor(.pink)
+                                .foregroundColor(.uchicagoMaroon)
                         }
                 }
                 .frame(width: 80, height: 80)
@@ -212,7 +212,7 @@ struct NoDuoSection: View {
                 }
                 .padding()
                 .foregroundColor(.white)
-                .background(.pink.gradient)
+                .background(.uchicagoMaroon.gradient)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
 
@@ -239,7 +239,7 @@ struct NoDuoSection: View {
             VStack(spacing: 16) {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 40))
-                    .foregroundStyle(.pink.gradient)
+                    .foregroundStyle(.uchicagoMaroon.gradient)
 
                 Text("Why a Duo?")
                     .font(.headline)
@@ -312,7 +312,7 @@ struct InviteCard: View {
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(width: 36, height: 36)
-                        .background(.pink)
+                        .background(.uchicagoMaroon)
                         .clipShape(Circle())
                 }
             }
@@ -364,7 +364,7 @@ struct InviteFriendView: View {
                                 .padding()
                         }
                     }
-                    .background(searchText.isEmpty || isSearching ? Color.gray.opacity(0.3) : .pink)
+                    .background(searchText.isEmpty || isSearching ? Color.gray.opacity(0.3) : .uchicagoMaroon)
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .disabled(searchText.isEmpty || isSearching)
@@ -414,7 +414,7 @@ struct InviteFriendView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color(.secondarySystemGroupedBackground))
-                    .foregroundColor(.pink)
+                    .foregroundColor(.uchicagoMaroon)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 

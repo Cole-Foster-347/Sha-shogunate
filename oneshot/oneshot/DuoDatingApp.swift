@@ -5,8 +5,20 @@ import SwiftUI
 // MARK: - Root View
 struct RootView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showSplash = true
 
     var body: some View {
+        ZStack {
+            if showSplash {
+                SplashView { withAnimation(.easeInOut(duration: 0.4)) { showSplash = false } }
+                    .transition(.opacity)
+            } else {
+                content.transition(.opacity)
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         Group {
             if !ServiceContainer.shared.authService.isAuthenticated {
                 // Not logged in - show welcome/auth screen
@@ -35,7 +47,7 @@ struct DuoRequiredView: View {
 
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 80))
-                    .foregroundStyle(.pink.gradient)
+                    .foregroundStyle(.uchicagoMaroon.gradient)
 
                 Text("Find Your Duo")
                     .font(.largeTitle.bold())
@@ -52,7 +64,7 @@ struct DuoRequiredView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(.pink.gradient)
+                        .background(.uchicagoMaroon.gradient)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }

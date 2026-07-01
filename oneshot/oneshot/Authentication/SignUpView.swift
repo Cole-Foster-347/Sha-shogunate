@@ -25,7 +25,7 @@ struct SignUpView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "heart.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
 
                     Text("Create Account")
                         .font(.title.bold())
@@ -133,7 +133,7 @@ struct SignUpView: View {
                         } label: {
                             Image(systemName: agreedToTerms ? "checkmark.square.fill" : "square")
                                 .font(.title3)
-                                .foregroundStyle(agreedToTerms ? .pink : .secondary)
+                                .foregroundStyle(agreedToTerms ? .uchicagoMaroon : .secondary)
                         }
 
                         Text("I agree to the Terms of Service and Privacy Policy")
@@ -173,7 +173,7 @@ struct SignUpView: View {
                             .padding()
                     }
                 }
-                .background(.pink.gradient)
+                .background(.uchicagoMaroon.gradient)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .disabled(isLoading || !isFormValid)

@@ -41,7 +41,7 @@ struct OnboardingProgressView: View {
         HStack(spacing: 8) {
             ForEach(OnboardingStep.allCases, id: \.rawValue) { step in
                 Capsule()
-                    .fill(step.rawValue <= currentStep.rawValue ? Color.pink : Color.gray.opacity(0.3))
+                    .fill(step.rawValue <= currentStep.rawValue ? Color.uchicagoMaroon : Color.gray.opacity(0.3))
                     .frame(height: 4)
             }
         }
@@ -93,7 +93,7 @@ struct OnboardingBasicsView: View {
                                 .foregroundColor(.primary)
                             Spacer()
                             Image(systemName: "calendar")
-                                .foregroundColor(.pink)
+                                .foregroundColor(.uchicagoMaroon)
                         }
                         .padding()
                         .background(Color(.secondarySystemBackground))
@@ -283,7 +283,7 @@ struct PhotoSlotView: View {
                                     .font(.caption)
                             }
                         }
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
                     }
                     .onTapGesture(perform: onTap)
             }
@@ -339,7 +339,7 @@ struct OnboardingProfileView: View {
                         Button("Add") {
                             showPromptPicker = true
                         }
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
                     }
 
                     if appState.onboardingPrompts.isEmpty {
@@ -389,7 +389,7 @@ struct OnboardingDuoView: View {
             VStack(spacing: 16) {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 60))
-                    .foregroundStyle(.pink.gradient)
+                    .foregroundStyle(.uchicagoMaroon.gradient)
                 Text("Find Your Duo")
                     .font(.largeTitle.bold())
                 // CLAUDE.md §9 tagline
@@ -410,7 +410,7 @@ struct OnboardingDuoView: View {
                 } label: {
                     Label("Create a duo", systemImage: "plus.circle.fill")
                         .font(.headline).frame(maxWidth: .infinity).padding()
-                        .background(.pink.gradient).foregroundColor(.white)
+                        .background(.uchicagoMaroon.gradient).foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
 
@@ -418,7 +418,7 @@ struct OnboardingDuoView: View {
                     Label("Join with a code", systemImage: "arrow.right.circle.fill")
                         .font(.headline).frame(maxWidth: .infinity).padding()
                         .background(Color(.secondarySystemBackground))
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
@@ -460,7 +460,7 @@ struct OnboardingDuoView: View {
                     else { Text("Continue") }
                 }
                 .font(.headline).frame(maxWidth: .infinity).padding()
-                .background(.pink.gradient).foregroundColor(.white)
+                .background(.uchicagoMaroon.gradient).foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .disabled(appState.isLoading)
@@ -487,7 +487,7 @@ struct OnboardingDuoView: View {
                 .padding(.horizontal, 32)
 
             if let msg = appState.errorMessage {
-                Text(msg).font(.footnote).foregroundColor(.pink)
+                Text(msg).font(.footnote).foregroundColor(.uchicagoMaroon)
                     .multilineTextAlignment(.center).padding(.horizontal, 32)
             }
 
@@ -502,7 +502,7 @@ struct OnboardingDuoView: View {
                         else { Text("Join duo") }
                     }
                     .font(.headline).frame(maxWidth: .infinity).padding()
-                    .background(.pink.gradient).foregroundColor(.white)
+                    .background(.uchicagoMaroon.gradient).foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
                 .disabled(appState.isLoading || enteredCode.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -526,7 +526,7 @@ struct DuoExplainerRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.pink)
+                .foregroundColor(.uchicagoMaroon)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -561,12 +561,12 @@ struct SelectionButton: View {
                 .font(.subheadline.weight(.medium))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(isSelected ? Color.pink : Color(.secondarySystemBackground))
+                .background(isSelected ? Color.uchicagoMaroon : Color(.secondarySystemBackground))
                 .foregroundColor(isSelected ? .white : .primary)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.pink : Color.clear, lineWidth: 2)
+                        .stroke(isSelected ? Color.uchicagoMaroon : Color.clear, lineWidth: 2)
                 )
         }
     }
@@ -584,7 +584,7 @@ struct OnboardingNextButton: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(isEnabled ? Color.clear : Color.gray.opacity(0.3))
-                .backgroundStyle(isEnabled ? AnyShapeStyle(.pink.gradient) : AnyShapeStyle(Color.clear))
+                .backgroundStyle(isEnabled ? AnyShapeStyle(.uchicagoMaroon.gradient) : AnyShapeStyle(Color.clear))
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
         }

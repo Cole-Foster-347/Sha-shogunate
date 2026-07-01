@@ -45,7 +45,7 @@ struct MatchListView: View {
                         } label: {
                             HStack(spacing: 14) {
                                 Image(systemName: "person.2.fill")
-                                    .foregroundStyle(.pink.gradient)
+                                    .foregroundStyle(.uchicagoMaroon.gradient)
                                     .frame(width: 40, height: 40)
                                     .background(Color(.secondarySystemBackground))
                                     .clipShape(Circle())
@@ -184,7 +184,7 @@ struct MatchChatView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
                 }
                 .disabled(vm.draft.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -206,7 +206,7 @@ struct ChatMessageBubble: View {
             if isMine { Spacer(minLength: 40) }
             Text(text)
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(isMine ? Color.pink : Color(.secondarySystemBackground))
+                .background(isMine ? Color.uchicagoMaroon : Color(.secondarySystemBackground))
                 .foregroundColor(isMine ? .white : .primary)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             if !isMine { Spacer(minLength: 40) }

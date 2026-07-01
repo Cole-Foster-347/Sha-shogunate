@@ -17,7 +17,7 @@ struct ForgotPasswordView: View {
                     // Icon
                     Image(systemName: "key.fill")
                         .font(.system(size: 60))
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
                         .padding(.top, 48)
 
                     // Header
@@ -83,7 +83,7 @@ struct ForgotPasswordView: View {
                                 .padding()
                         }
                     }
-                    .background(.pink.gradient)
+                    .background(.uchicagoMaroon.gradient)
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .disabled(isLoading || !isFormValid)

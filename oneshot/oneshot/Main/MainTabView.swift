@@ -67,7 +67,7 @@ struct MainTabView: View {
                 }
                 .tag(Tab.profile)
         }
-        .tint(.pink)
+        .tint(.uchicagoMaroon)
     }
 }
 

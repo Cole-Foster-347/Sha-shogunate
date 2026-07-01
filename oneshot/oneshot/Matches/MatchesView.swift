@@ -91,7 +91,7 @@ struct NewMatchCard: View {
                             .scaledToFill()
                     } placeholder: {
                         Circle()
-                            .fill(Color.pink.opacity(0.2))
+                            .fill(Color.uchicagoMaroon.opacity(0.2))
                     }
                     .frame(width: 60, height: 60)
                     .clipShape(Circle())
@@ -227,7 +227,7 @@ struct ConversationRow: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(.pink)
+                            .background(.uchicagoMaroon)
                             .clipShape(Capsule())
                     }
                 }
@@ -244,7 +244,7 @@ struct EmptyMatchesView: View {
         VStack(spacing: 20) {
             Image(systemName: "heart.text.square")
                 .font(.system(size: 60))
-                .foregroundStyle(.pink.gradient)
+                .foregroundStyle(.uchicagoMaroon.gradient)
 
             Text("No Matches Yet")
                 .font(.title2.bold())
@@ -256,7 +256,7 @@ struct EmptyMatchesView: View {
             NavigationLink(destination: DiscoverView()) {
                 Label("Start Swiping", systemImage: "hand.tap")
                     .padding()
-                    .background(.pink.gradient)
+                    .background(.uchicagoMaroon.gradient)
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }

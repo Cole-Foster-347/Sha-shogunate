@@ -189,7 +189,7 @@ struct MatchHeaderView: View {
                             .scaledToFill()
                     } placeholder: {
                         Circle()
-                            .fill(Color.pink.opacity(0.2))
+                            .fill(Color.uchicagoMaroon.opacity(0.2))
                     }
                     .frame(width: 70, height: 70)
                     .clipShape(Circle())
@@ -273,7 +273,7 @@ struct MessageBubble: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Icebreaker", systemImage: "snowflake")
                                 .font(.caption2)
-                                .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .pink)
+                                .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .uchicagoMaroon)
                             Text(message.content)
                         }
 
@@ -281,7 +281,7 @@ struct MessageBubble: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Date Suggestion", systemImage: "calendar.badge.plus")
                                 .font(.caption2)
-                                .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .pink)
+                                .foregroundStyle(isFromCurrentUser ? .white.opacity(0.8) : .uchicagoMaroon)
                             Text(message.content)
                         }
 
@@ -291,7 +291,7 @@ struct MessageBubble: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(isFromCurrentUser ? Color.pink : Color(.secondarySystemBackground))
+                .background(isFromCurrentUser ? Color.uchicagoMaroon : Color(.secondarySystemBackground))
                 .foregroundColor(isFromCurrentUser ? .white : .primary)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
 
@@ -337,7 +337,7 @@ struct ChatInputBar: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.pink)
+                        .foregroundColor(.uchicagoMaroon)
                 }
 
                 // Text field
@@ -355,7 +355,7 @@ struct ChatInputBar: View {
                     Button(action: onSend) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.pink)
+                            .foregroundColor(.uchicagoMaroon)
                     }
                 }
             }
@@ -393,8 +393,8 @@ struct IcebreakerSuggestions: View {
                                 .font(.caption)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(Color.pink.opacity(0.1))
-                                .foregroundColor(.pink)
+                                .background(Color.uchicagoMaroon.opacity(0.1))
+                                .foregroundColor(.uchicagoMaroon)
                                 .clipShape(Capsule())
                         }
                     }
@@ -558,7 +558,7 @@ struct ForcedIcebreakerView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.pink.gradient)
+                    .background(Color.uchicagoMaroon.gradient)
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }

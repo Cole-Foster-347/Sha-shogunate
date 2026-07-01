@@ -22,7 +22,7 @@ struct LoginView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "heart.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
 
                     Text("Welcome Back")
                         .font(.title.bold())
@@ -84,7 +84,7 @@ struct LoginView: View {
                     } label: {
                         Text("Forgot Password?")
                             .font(.subheadline)
-                            .foregroundStyle(.pink)
+                            .foregroundStyle(.uchicagoMaroon)
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -117,7 +117,7 @@ struct LoginView: View {
                             .padding()
                     }
                 }
-                .background(.pink.gradient)
+                .background(.uchicagoMaroon.gradient)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .disabled(isLoading || !isFormValid)

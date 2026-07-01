@@ -11,7 +11,7 @@ struct WelcomeView: View {
             ZStack {
                 // Background gradient
                 LinearGradient(
-                    colors: [.pink.opacity(0.3), .purple.opacity(0.3)],
+                    colors: [.uchicagoMaroon.opacity(0.3), .purple.opacity(0.3)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -23,16 +23,16 @@ struct WelcomeView: View {
                     // App logo/icon
                     Image(systemName: "heart.circle.fill")
                         .font(.system(size: 100))
-                        .foregroundStyle(.pink.gradient)
+                        .foregroundStyle(.uchicagoMaroon.gradient)
                         .padding(.bottom, 8)
 
                     // App name
-                    Text("OneShot")
+                    Text("Roomeet")
                         .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.uchicagoMaroon)
 
                     // Tagline
-                    Text("Double dating made simple")
+                    Text("Meet as a pair. 45 minutes. Zero pressure.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -50,7 +50,7 @@ struct WelcomeView: View {
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.pink.gradient)
+                                .background(.uchicagoMaroon.gradient)
                                 .foregroundColor(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
@@ -64,11 +64,11 @@ struct WelcomeView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(.white)
-                                .foregroundColor(.pink)
+                                .foregroundColor(.uchicagoMaroon)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(.pink, lineWidth: 2)
+                                        .stroke(.uchicagoMaroon, lineWidth: 2)
                                 )
                         }
                     }

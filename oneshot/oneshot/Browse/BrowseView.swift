@@ -112,7 +112,7 @@ struct BrowseView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Image(systemName: "person.2.fill").foregroundStyle(.pink.gradient)
+                    Image(systemName: "person.2.fill").foregroundStyle(.uchicagoMaroon.gradient)
                 }
             }
             .task { await vm.load() }
@@ -162,7 +162,7 @@ struct BrowseCardStack: View {
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding(.horizontal, 28).frame(height: 64)
-                        .background(.pink.gradient).clipShape(Capsule())
+                        .background(.uchicagoMaroon.gradient).clipShape(Capsule())
                 }
             }
         }
@@ -199,7 +199,7 @@ struct BrowseDuoCard: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottomLeading) {
-                photoPlaceholder
+                photosView
 
                 LinearGradient(colors: [.clear, .black.opacity(0.65)],
                                startPoint: .center, endPoint: .bottom)
@@ -231,11 +231,37 @@ struct BrowseDuoCard: View {
         }
     }
 
-    /// Placeholder art. TODO(photos): when `duo.photos` is non-empty, load the first photo
-    /// via a Storage SIGNED URL (CLAUDE.md §4 — signed/expiring URLs only, never public).
-    /// No bucket/photos yet, so we render a gradient placeholder.
-    private var photoPlaceholder: some View {
-        LinearGradient(colors: [.pink.opacity(0.75), .purple.opacity(0.75)],
+    /// Duo photos — shown side-by-side (one per member) to read as a pair.
+    /// DEMO: `photos` currently holds public image URLs (fake data).
+    /// TODO(photos, §4): in production these are Storage PATHS; resolve each to a
+    /// signed/expiring URL (never public) before loading. `photoURL(for:)` is where
+    /// that resolution will go.
+    @ViewBuilder private var photosView: some View {
+        let urls = duo.photos.compactMap { photoURL(for: $0) }
+        if urls.isEmpty {
+            placeholder
+        } else {
+            HStack(spacing: 0) {
+                ForEach(Array(urls.prefix(2).enumerated()), id: \.offset) { _, url in
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        placeholder
+                    }
+                }
+            }
+        }
+    }
+
+    /// Resolve a stored photo reference to a loadable URL.
+    /// DEMO: entries are already full URLs. TODO(§4): if it's a Storage path,
+    /// return a signed URL from SupabaseConfig instead.
+    private func photoURL(for ref: String) -> URL? {
+        ref.hasPrefix("http") ? URL(string: ref) : nil
+    }
+
+    private var placeholder: some View {
+        LinearGradient(colors: [.uchicagoMaroon.opacity(0.75), .uchicagoMaroonLight.opacity(0.75)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)
             .overlay(
                 Image(systemName: "person.2.fill")
@@ -265,7 +291,7 @@ struct BrowseMessageView: View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
                 .font(.system(size: 60))
-                .foregroundStyle(.pink.gradient)
+                .foregroundStyle(.uchicagoMaroon.gradient)
             Text(title).font(.title2.bold())
             Text(subtitle)
                 .multilineTextAlignment(.center)

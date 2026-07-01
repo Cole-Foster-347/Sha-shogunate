@@ -66,7 +66,7 @@ struct NotificationRow: View {
 
             if !notification.isRead {
                 Circle()
-                    .fill(.pink)
+                    .fill(.uchicagoMaroon)
                     .frame(width: 10, height: 10)
             }
         }
@@ -87,7 +87,7 @@ struct NotificationRow: View {
 
     private var iconColor: Color {
         switch notification.type {
-        case .newMatch: return .pink
+        case .newMatch: return .uchicagoMaroon
         case .newMessage: return .blue
         case .duoInvite: return .orange
         case .duoInviteAccepted: return .green

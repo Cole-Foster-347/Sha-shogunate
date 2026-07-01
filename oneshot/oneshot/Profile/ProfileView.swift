@@ -40,7 +40,7 @@ struct ProfileHeaderView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [.pink, .purple],
+                                colors: [.uchicagoMaroon, .purple],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -96,7 +96,7 @@ struct QuickActionsSection: View {
                 QuickActionButton(
                     icon: "pencil",
                     title: "Edit Profile",
-                    color: .pink
+                    color: .uchicagoMaroon
                 )
             }
             .buttonStyle(.plain)
@@ -179,7 +179,7 @@ struct ProfileSectionsView: View {
                                     .overlay {
                                         Image(systemName: "plus")
                                             .font(.title2)
-                                            .foregroundColor(.pink)
+                                            .foregroundColor(.uchicagoMaroon)
                                     }
                             }
                         }
@@ -385,7 +385,7 @@ struct EditPhotosView: View {
                                                         .font(.caption)
                                                 }
                                             }
-                                            .foregroundColor(.pink)
+                                            .foregroundColor(.uchicagoMaroon)
                                         }
                                     }
                             }
@@ -669,7 +669,7 @@ struct ProfileCardPreview: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [.pink.opacity(0.3), .purple.opacity(0.3)],
+                                colors: [.uchicagoMaroon.opacity(0.3), .purple.opacity(0.3)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
