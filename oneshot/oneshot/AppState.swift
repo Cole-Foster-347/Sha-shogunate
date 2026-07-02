@@ -237,6 +237,28 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Remove a photo from the ACTIVE duo (§4). Reads photos[] fresh so a
+    /// concurrent partner edit isn't clobbered, then deletes object + array entry.
+    func removeActiveDuoPhoto(_ path: String) async {
+        guard let duoId = currentDuo?.id else {
+            errorMessage = "You need an active duo to remove photos."
+            return
+        }
+        isUploadingDuoPhoto = true
+        defer { isUploadingDuoPhoto = false }
+        do {
+            let existing = (try await services.browseService.fetchActiveDuo())?.photos ?? []
+            let updated = try await services.duoPhotoService.removePhoto(
+                path, fromDuo: duoId, existingPhotos: existing
+            )
+            activeDuoPhotos = updated
+            print("✅ Duo photo removed (now \(updated.count))")
+        } catch {
+            print("❌ Remove duo photo error: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func uploadPhoto(image: UIImage) async {
         guard let userId = currentUser?.id else { return }
         

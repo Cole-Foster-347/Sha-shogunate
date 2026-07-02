@@ -58,9 +58,6 @@ struct CurrentDuoSection: View {
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            // Duo photos (canonical duo_profile.photos[] — private bucket, signed URLs)
-            DuoPhotosSection()
-
             // Duo Profile Preview
             NavigationLink(destination: DuoPreviewView(duo: duo)) {
                 HStack {
@@ -86,16 +83,16 @@ struct CurrentDuoSection: View {
             }
             .buttonStyle(.plain)
 
-            // Edit Duo Bio
-            NavigationLink(destination: EditDuoBioView(duo: duo)) {
+            // Edit Duo — bio, photos, interests (§7 step 9, active duo)
+            NavigationLink(destination: EditDuoView(duoId: duo.id, initialBio: duo.duoBio)) {
                 HStack {
                     Image(systemName: "pencil")
                         .foregroundColor(.uchicagoMaroon)
 
                     VStack(alignment: .leading) {
-                        Text("Edit Duo Bio")
+                        Text("Edit Duo")
                             .font(.headline)
-                        Text("Customize your duo's profile")
+                        Text("Bio, photos, and interests")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -135,104 +132,6 @@ struct CurrentDuoSection: View {
                 }
             } message: {
                 Text("Are you sure you want to leave your duo? You won't be able to swipe until you join another duo.")
-            }
-        }
-    }
-}
-
-// MARK: - Duo Photos Section
-/// Add-only duo photos for the ACTIVE duo. Uploads go to the private `duo-photos`
-/// bucket as Storage PATHS on `duo_profile.photos[]`; thumbnails load via signed,
-/// expiring URLs (CLAUDE.md §4). Reorder/delete UI is out of scope for this ticket.
-struct DuoPhotosSection: View {
-    @EnvironmentObject var appState: AppState
-    @State private var showPicker = false
-    @State private var thumbnails: [String: URL] = [:]
-
-    private var atMax: Bool { appState.activeDuoPhotos.count >= DuoPhotoService.maxPhotos }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Duo Photos")
-                    .font(.headline)
-                Spacer()
-                Text("\(appState.activeDuoPhotos.count)/\(DuoPhotoService.maxPhotos)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(appState.activeDuoPhotos, id: \.self) { ref in
-                        thumbnail(for: ref)
-                    }
-
-                    if !atMax {
-                        Button {
-                            showPicker = true
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.uchicagoMaroon.opacity(0.1))
-                                if appState.isUploadingDuoPhoto {
-                                    ProgressView()
-                                } else {
-                                    Image(systemName: "plus")
-                                        .font(.title2)
-                                        .foregroundColor(.uchicagoMaroon)
-                                }
-                            }
-                            .frame(width: 88, height: 88)
-                        }
-                        .disabled(appState.isUploadingDuoPhoto)
-                    }
-                }
-            }
-
-            if atMax {
-                Text("You've added the max of \(DuoPhotoService.maxPhotos) photos.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .task {
-            await appState.loadActiveDuoPhotos()
-            await resolveThumbnails()
-        }
-        .onChange(of: appState.activeDuoPhotos) { _ in
-            Task { await resolveThumbnails() }
-        }
-        .sheet(isPresented: $showPicker) {
-            PhotoLibraryPicker { image in
-                Task { await appState.addActiveDuoPhoto(image) }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func thumbnail(for ref: String) -> some View {
-        AsyncImage(url: thumbnails[ref]) { image in
-            image.resizable().scaledToFill()
-        } placeholder: {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.2))
-        }
-        .frame(width: 88, height: 88)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    /// Resolve each stored ref to a signed URL (or use legacy http entries as-is).
-    private func resolveThumbnails() async {
-        let service = ServiceContainer.shared.duoPhotoService
-        for ref in appState.activeDuoPhotos where thumbnails[ref] == nil {
-            if ref.hasPrefix("http") {
-                thumbnails[ref] = URL(string: ref)
-            } else if let url = try? await service.signedURL(forPath: ref) {
-                thumbnails[ref] = url
             }
         }
     }
@@ -623,41 +522,6 @@ struct DuoPreviewView: View {
         }
         .navigationTitle("Duo Preview")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// MARK: - Edit Duo Bio View
-struct EditDuoBioView: View {
-    let duo: Duo
-    @Environment(\.dismiss) private var dismiss
-    @State private var duoBio: String = ""
-
-    var body: some View {
-        Form {
-            Section("Duo Bio") {
-                TextEditor(text: $duoBio)
-                    .frame(minHeight: 150)
-            }
-
-            Section {
-                Text("This bio appears on your duo's profile and helps other duos get to know you both!")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .navigationTitle("Edit Duo Bio")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                    // Save bio
-                    dismiss()
-                }
-            }
-        }
-        .onAppear {
-            duoBio = duo.duoBio
-        }
     }
 }
 

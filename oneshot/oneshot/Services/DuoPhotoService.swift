@@ -77,6 +77,47 @@ final class DuoPhotoService {
         return updated
     }
 
+    // MARK: - Remove
+
+    /// Remove one photo from the active duo: delete the Storage object AND drop its
+    /// path from `duo_profile.photos[]`. Both-or-neither semantics (ticket §9):
+    /// we ALWAYS drop the array entry so it never points at a missing object, and a
+    /// Storage "not found" (already gone) is tolerated rather than aborting. Any OTHER
+    /// Storage error (e.g. RLS denial) is rethrown BEFORE we touch the array, so we
+    /// don't strand a live object with no array reference.
+    /// - Parameter path: the stored ref exactly as it appears in `photos[]`
+    ///   (`duo-photos/<duo>/<uuid>.jpg`). Legacy `http` seed entries can't be deleted
+    ///   from Storage — we just drop them from the array.
+    /// - Returns: the updated `photos[]` array (paths).
+    func removePhoto(_ path: String, fromDuo duoId: UUID, existingPhotos: [String]) async throws -> [String] {
+        let isStorageObject = !path.hasPrefix("http")
+        if isStorageObject {
+            do {
+                _ = try await supabase.storage
+                    .from(Self.bucket)
+                    .remove(paths: [objectPath(from: path)])
+            } catch {
+                // Tolerate "already gone" (404/not found); rethrow anything else so we
+                // don't remove the array entry while a real object still exists.
+                let desc = "\(error)".lowercased()
+                let alreadyGone = desc.contains("not found") || desc.contains("404") || desc.contains("does not exist")
+                guard alreadyGone else {
+                    throw DuoPhotoError.removeFailed(error.localizedDescription)
+                }
+                print("ℹ️ Storage object already gone for \(path) — dropping array entry anyway")
+            }
+        }
+
+        let updated = existingPhotos.filter { $0 != path }
+        try await supabase
+            .from("duo_profile")
+            .update(["photos": updated])
+            .eq("id", value: duoId.uuidString)
+            .execute()
+
+        return updated
+    }
+
     // MARK: - Helpers
 
     /// Strip a leading `duo-photos/` so callers can pass either the stored path
@@ -131,6 +172,7 @@ enum DuoPhotoError: LocalizedError {
     case tooMany(Int)
     case tooLarge(Double)
     case processingFailed
+    case removeFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -140,6 +182,8 @@ enum DuoPhotoError: LocalizedError {
             return "That photo is too large (\(String(format: "%.1f", mb)) MB) even after compression."
         case .processingFailed:
             return "Couldn't process that image. Try a different photo."
+        case .removeFailed(let m):
+            return "Couldn't remove that photo: \(m)"
         }
     }
 }
