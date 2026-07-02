@@ -1,5 +1,6 @@
 import Foundation
 import Supabase
+import Realtime
 
 /// Service responsible for matching, swiping, and match management operations
 @MainActor
@@ -44,6 +45,40 @@ class MatchService {
             .order("created_at", ascending: false)
             .execute()
             .value
+    }
+
+    /// A single duo_profile by id (for resolving the matched duo's photos/bio).
+    func fetchDuo(id: UUID) async throws -> DuoProfileDTO? {
+        let rows: [DuoProfileDTO] = try await supabase
+            .from("duo_profile").select()
+            .eq("id", value: id.uuidString)
+            .limit(1)
+            .execute().value
+        return rows.first
+    }
+
+    // MARK: - Realtime match detection (§8: channel match:<activeDuoId>)
+
+    /// App-level channel for live match INSERTs. RLS (match_read) already restricts
+    /// delivered rows to matches this user participates in; we scope to the active duo
+    /// client-side (a Realtime postgres filter can't express duo_a OR duo_b).
+    func matchChannel(activeDuoId: UUID) -> RealtimeChannelV2 {
+        supabase.realtimeV2.channel("match:\(activeDuoId.uuidString)")
+    }
+
+    func matchInserts(on channel: RealtimeChannelV2) -> AsyncStream<DuoMatchDTO> {
+        let changes = channel.postgresChange(InsertAction.self, schema: "public", table: "match")
+        return AsyncStream { continuation in
+            let task = Task {
+                for await change in changes {
+                    if let m = try? change.decodeRecord(as: DuoMatchDTO.self, decoder: JSONDecoder()) {
+                        continuation.yield(m)
+                    }
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     // MARK: - Swiping

@@ -32,6 +32,19 @@ class BrowseService {
         return rows.first?.activeDuoId
     }
 
+    /// The current user's active duo_profile (for session resume), or nil if they have none.
+    func fetchActiveDuo() async throws -> DuoProfileDTO? {
+        guard let activeDuoId = try await currentActiveDuoId() else { return nil }
+        let rows: [DuoProfileDTO] = try await supabase
+            .from("duo_profile")
+            .select()
+            .eq("id", value: activeDuoId.uuidString)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
     /// Fetch the browseable card stack for the current user.
     ///
     /// Equivalent SQL WHERE:

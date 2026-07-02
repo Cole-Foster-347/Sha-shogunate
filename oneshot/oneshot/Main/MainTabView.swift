@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedTab: Tab = .discover
+    @State private var chatMatch: IdentifiedMatch?
 
     enum Tab: Int, CaseIterable {
         case discover
@@ -68,6 +69,24 @@ struct MainTabView: View {
                 .tag(Tab.profile)
         }
         .tint(.uchicagoMaroon)
+        // Live match banner, above all tabs.
+        .overlay(alignment: .top) {
+            if let banner = appState.matchBanner {
+                MatchBannerView(
+                    data: banner,
+                    onSayHi: {
+                        chatMatch = IdentifiedMatch(id: banner.matchId)
+                        appState.matchBanner = nil
+                    },
+                    onDismiss: { withAnimation { appState.matchBanner = nil } }
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: appState.matchBanner)
+        .sheet(item: $chatMatch) { m in
+            NavigationStack { MatchChatView(matchId: m.id) }
+        }
     }
 }
 

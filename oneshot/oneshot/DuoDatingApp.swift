@@ -21,20 +21,34 @@ struct RootView: View {
     @ViewBuilder private var content: some View {
         Group {
             if !ServiceContainer.shared.authService.isAuthenticated {
-                // Not logged in - show welcome/auth screen
+                // Not logged in — welcome / login
                 WelcomeView()
-            } else if !appState.isOnboardingComplete {
-                // Logged in but not onboarded
-                OnboardingContainerView()
             } else if appState.currentDuo == nil {
-                // Onboarded but no duo
-                DuoRequiredView()
+                // Signed in, no active duo — create or join one
+                DuoSetupView()
             } else {
-                // Fully set up - show main app
+                // Signed in with an active duo — the app
                 MainTabView()
             }
         }
-        .animation(.easeInOut, value: appState.isOnboardingComplete)
+        .animation(.easeInOut, value: appState.currentDuo?.id)
+    }
+}
+
+// MARK: - Duo Setup (signed in, no duo yet)
+struct DuoSetupView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        NavigationStack {
+            OnboardingDuoView()
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Sign Out") { Task { await appState.signOut() } }
+                            .foregroundColor(.uchicagoMaroon)
+                    }
+                }
+        }
     }
 }
 

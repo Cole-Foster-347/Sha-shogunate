@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import Realtime
 
 // MARK: - App State
 @MainActor
@@ -25,6 +26,15 @@ class AppState: ObservableObject {
 
     /// Invite code the creator (A) is currently sharing, while waiting for a partner to accept.
     @Published var activeInviteCode: String?
+
+    /// Live "It's a match" banner (set by the app-level match observer).
+    @Published var matchBanner: MatchBannerData?
+
+    // Match observer (Realtime) — app-level so it fires on any screen.
+    private var matchChannel: RealtimeChannelV2?
+    private var matchTask: Task<Void, Never>?
+    private var shownMatchIds: Set<UUID> = []
+    private var observingDuoId: UUID?
 
     // MARK: - Onboarding Data (temporary)
     @Published var onboardingFirstName: String = ""
@@ -57,43 +67,94 @@ class AppState: ObservableObject {
         }
     }
 
-    /// Load user data from database after authentication
+    /// Resume the signed-in user's session against the CANONICAL backend.
+    /// If they have an active duo -> set currentDuo (RootView shows the app).
+    /// If not -> currentDuo stays nil (RootView shows the Create/Join duo screen).
+    /// Does NOT touch the dead users/pairs tables.
     func loadUserData() async {
         isLoading = true
         errorMessage = nil
-
         do {
-            // Get current user from database
-            let user = try await services.userService.getCurrentUser()
-            currentUser = user
-
-            // Check if profile is complete (minimum: has name and bio)
-            // Photos are optional - user can add them later
-            if !user.firstName.isEmpty && !user.bio.isEmpty {
-                isOnboardingComplete = true
+            if let duo = try await services.browseService.fetchActiveDuo() {
+                currentDuo = Duo(
+                    id: duo.id,
+                    user1Id: duo.memberA,
+                    user2Id: duo.memberB,
+                    user1: nil,
+                    user2: nil,
+                    duoBio: duo.bio ?? "",
+                    createdAt: duo.createdAt
+                )
+                startMatchObserver(activeDuoId: duo.id)
+            } else {
+                currentDuo = nil
             }
-
-            // Load duo if exists
-            if let pairId = user.duoId {
-                currentDuo = try await services.pairService.getPair(id: pairId)
-                matches = try await services.matchService.getCurrentMatches()
-            }
-
-            // Load pending invites
-            pendingInvites = try await services.pairService.getPendingInvites(userId: user.id)
-
-            // Load discovery duos if user has a pair
-            if let pairId = currentDuo?.id {
-                await loadDiscoveryDuos(currentPairId: pairId)
-            }
-
-            isLoading = false
-
+            isOnboardingComplete = true // a real app_user exists (created by the signup trigger)
         } catch {
-            print("❌ Load user data error: \(error)")
-            errorMessage = error.localizedDescription
-            isLoading = false
+            print("❌ Resume error: \(error)")
+            currentDuo = nil
         }
+        isLoading = false
+    }
+
+    /// Sign out and return to the welcome/login screen.
+    func signOut() async {
+        stopMatchObserver()
+        try? await services.authService.signOut()
+        currentUser = nil
+        currentDuo = nil
+        isOnboardingComplete = false
+        activeInviteCode = nil
+        discoveryDuos = []
+        matches = []
+    }
+
+    // MARK: - Live match observer (Realtime, §8)
+
+    /// Subscribe to live match INSERTs for the active duo. Idempotent per duo.
+    func startMatchObserver(activeDuoId: UUID) {
+        if observingDuoId == activeDuoId, matchChannel != nil { return }
+        stopMatchObserver()
+        observingDuoId = activeDuoId
+
+        let channel = services.matchService.matchChannel(activeDuoId: activeDuoId)
+        matchChannel = channel
+        let stream = services.matchService.matchInserts(on: channel) // registers before subscribe
+        matchTask = Task { [weak self] in
+            for await match in stream {
+                await self?.handleMatchInsert(match, activeDuoId: activeDuoId)
+            }
+        }
+        Task { await channel.subscribe() }
+    }
+
+    func stopMatchObserver() {
+        matchTask?.cancel()
+        matchTask = nil
+        if let channel = matchChannel {
+            Task { await channel.unsubscribe() }
+            matchChannel = nil
+        }
+        observingDuoId = nil
+    }
+
+    private func handleMatchInsert(_ match: DuoMatchDTO, activeDuoId: UUID) async {
+        // Scope to my active duo + de-dupe (never banner the same match twice a session).
+        guard match.duoA == activeDuoId || match.duoB == activeDuoId else { return }
+        guard !shownMatchIds.contains(match.id) else { return }
+        shownMatchIds.insert(match.id)
+
+        let otherId = (match.duoA == activeDuoId) ? match.duoB : match.duoA
+        let myDuo = (try? await services.matchService.fetchDuo(id: activeDuoId)) ?? nil
+        let otherDuo = (try? await services.matchService.fetchDuo(id: otherId)) ?? nil
+
+        matchBanner = MatchBannerData(
+            matchId: match.id,
+            myPhoto: myDuo?.photos.first.flatMap { URL(string: $0) },
+            otherPhoto: otherDuo?.photos.first.flatMap { URL(string: $0) },
+            otherBio: otherDuo?.bio ?? ""
+        )
+        // TODO(analytics): client-side match-shown marker (§10) once an analytics SDK exists.
     }
 
     /// Load discovery duos for swiping
@@ -365,6 +426,7 @@ class AppState: ObservableObject {
         )
         activeInviteCode = nil
         isOnboardingComplete = true
+        startMatchObserver(activeDuoId: duo.id)
     }
 
     func sendDuoInvite(to userId: UUID) async {
