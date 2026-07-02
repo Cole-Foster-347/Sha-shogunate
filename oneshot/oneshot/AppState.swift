@@ -30,6 +30,11 @@ class AppState: ObservableObject {
     /// Live "It's a match" banner (set by the app-level match observer).
     @Published var matchBanner: MatchBannerData?
 
+    /// Storage PATHS in the active duo's `duo_profile.photos[]` (canonical duo photos).
+    /// Resolved to signed URLs at render time (never stored as URLs — CLAUDE.md §4).
+    @Published var activeDuoPhotos: [String] = []
+    @Published var isUploadingDuoPhoto: Bool = false
+
     // Match observer (Realtime) — app-level so it fires on any screen.
     private var matchChannel: RealtimeChannelV2?
     private var matchTask: Task<Void, Never>?
@@ -193,6 +198,42 @@ class AppState: ObservableObject {
             print("❌ Update profile error: \(error)")
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+
+    // MARK: - Active-duo photos (canonical duo_profile.photos[])
+
+    /// Load the active duo's current photo paths (for the duo-edit affordance).
+    func loadActiveDuoPhotos() async {
+        do {
+            let duo = try await services.browseService.fetchActiveDuo()
+            activeDuoPhotos = duo?.photos ?? []
+        } catch {
+            print("❌ Load active-duo photos error: \(error)")
+        }
+    }
+
+    /// Upload a photo to the ACTIVE duo (§4 active-duo scoping) and append its path.
+    /// Members-only — Storage + duo_profile RLS enforce it; the UI also gates to the
+    /// active duo. Reads the current photos[] fresh so we respect the max-6 cap and
+    /// don't clobber a photo the partner added concurrently.
+    func addActiveDuoPhoto(_ image: UIImage) async {
+        guard let duoId = currentDuo?.id else {
+            errorMessage = "You need an active duo to add photos."
+            return
+        }
+        isUploadingDuoPhoto = true
+        defer { isUploadingDuoPhoto = false }
+        do {
+            let existing = (try await services.browseService.fetchActiveDuo())?.photos ?? []
+            let updated = try await services.duoPhotoService.addPhoto(
+                image, toDuo: duoId, existingPhotos: existing
+            )
+            activeDuoPhotos = updated
+            print("✅ Duo photo uploaded (now \(updated.count))")
+        } catch {
+            print("❌ Add duo photo error: \(error)")
+            errorMessage = error.localizedDescription
         }
     }
 

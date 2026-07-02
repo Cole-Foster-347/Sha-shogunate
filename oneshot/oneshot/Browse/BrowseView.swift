@@ -196,6 +196,9 @@ struct BrowseCardStack: View {
 struct BrowseDuoCard: View {
     let duo: DuoProfileDTO
 
+    /// Storage paths resolved to signed, expiring URLs (keyed by the stored ref).
+    @State private var resolvedURLs: [String: URL] = [:]
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottomLeading) {
@@ -229,20 +232,23 @@ struct BrowseDuoCard: View {
         .onAppear {
             // TODO(analytics): fire profile_view (§10) for this duo once analytics exists.
         }
+        .task(id: duo.id) {
+            await resolvePhotos()
+        }
     }
 
     /// Duo photos — shown side-by-side (one per member) to read as a pair.
-    /// DEMO: `photos` currently holds public image URLs (fake data).
-    /// TODO(photos, §4): in production these are Storage PATHS; resolve each to a
-    /// signed/expiring URL (never public) before loading. `photoURL(for:)` is where
-    /// that resolution will go.
+    /// Entries in `photos[]` are Storage PATHS resolved to signed, expiring URLs
+    /// (CLAUDE.md §4). TRANSITION: legacy seed rows hold public `http` URLs; those
+    /// are used as-is (see `photoURL(for:)`).
     @ViewBuilder private var photosView: some View {
-        let urls = duo.photos.compactMap { photoURL(for: $0) }
+        let refs = Array(duo.photos.prefix(2))
+        let urls = refs.compactMap { resolvedURLs[$0] }
         if urls.isEmpty {
             placeholder
         } else {
             HStack(spacing: 0) {
-                ForEach(Array(urls.prefix(2).enumerated()), id: \.offset) { _, url in
+                ForEach(Array(urls.enumerated()), id: \.offset) { _, url in
                     AsyncImage(url: url) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
@@ -253,11 +259,19 @@ struct BrowseDuoCard: View {
         }
     }
 
-    /// Resolve a stored photo reference to a loadable URL.
-    /// DEMO: entries are already full URLs. TODO(§4): if it's a Storage path,
-    /// return a signed URL from SupabaseConfig instead.
-    private func photoURL(for ref: String) -> URL? {
-        ref.hasPrefix("http") ? URL(string: ref) : nil
+    /// Resolve stored photo refs to loadable URLs when the card appears.
+    /// - Storage path  → signed, expiring URL via DuoPhotoService (private bucket).
+    /// - `http` URL    → used as-is (TRANSITION fallback for legacy seed data).
+    /// TODO(§4): drop the `http` branch once seed duos carry real uploaded paths.
+    private func resolvePhotos() async {
+        let service = ServiceContainer.shared.duoPhotoService
+        for ref in duo.photos.prefix(2) where resolvedURLs[ref] == nil {
+            if ref.hasPrefix("http") {
+                resolvedURLs[ref] = URL(string: ref)
+            } else if let url = try? await service.signedURL(forPath: ref) {
+                resolvedURLs[ref] = url
+            }
+        }
     }
 
     private var placeholder: some View {
