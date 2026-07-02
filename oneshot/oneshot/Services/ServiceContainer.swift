@@ -20,6 +20,7 @@ class ServiceContainer: ObservableObject {
     let browseService: BrowseService
     let duoPhotoService: DuoPhotoService
     let likeService: LikeService
+    let pendingLikesService: PendingLikesService
     let matchService: MatchService
     let chatService: ChatService
     let placesService: PlacesService
@@ -36,6 +37,7 @@ class ServiceContainer: ObservableObject {
         let browse = BrowseService(authService: auth)
         let duoPhoto = DuoPhotoService(authService: auth)
         let like = LikeService(authService: auth)
+        let pendingLikes = PendingLikesService(authService: auth, browseService: browse)
         let match = MatchService(authService: auth, userService: user, pairService: pair)
         let chat = ChatService(authService: auth)
         let places = PlacesService()
@@ -48,6 +50,7 @@ class ServiceContainer: ObservableObject {
         self.browseService = browse
         self.duoPhotoService = duoPhoto
         self.likeService = like
+        self.pendingLikesService = pendingLikes
         self.matchService = match
         self.chatService = chat
         self.placesService = places

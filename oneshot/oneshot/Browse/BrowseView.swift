@@ -84,12 +84,18 @@ final class BrowseViewModel: ObservableObject {
 
 struct BrowseView: View {
     @StateObject private var vm: BrowseViewModel
+    @StateObject private var pendingVM: PendingLikesViewModel
+    @State private var showPending = false
 
-    /// Defaults to the live service; inject a sample VM for previews/harnesses.
-    init(viewModel: BrowseViewModel? = nil) {
+    /// Defaults to the live services; inject sample VMs for previews/harnesses.
+    init(viewModel: BrowseViewModel? = nil, pendingViewModel: PendingLikesViewModel? = nil) {
         _vm = StateObject(wrappedValue: viewModel
             ?? BrowseViewModel(service: ServiceContainer.shared.browseService,
                                likeService: ServiceContainer.shared.likeService))
+        _pendingVM = StateObject(wrappedValue: pendingViewModel
+            ?? PendingLikesViewModel(service: ServiceContainer.shared.pendingLikesService,
+                                     likeService: ServiceContainer.shared.likeService,
+                                     browseService: ServiceContainer.shared.browseService))
     }
 
     var body: some View {
@@ -114,9 +120,28 @@ struct BrowseView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Image(systemName: "person.2.fill").foregroundStyle(.uchicagoMaroon.gradient)
                 }
+                // Pending-likes tray entry point + count badge (§7 step 5).
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showPending = true } label: {
+                        Image(systemName: "heart.text.square")
+                            .overlay(alignment: .topTrailing) {
+                                if pendingVM.count > 0 {
+                                    Text("\(pendingVM.count)")
+                                        .font(.caption2.bold())
+                                        .foregroundColor(.white)
+                                        .padding(4)
+                                        .background(Color.red, in: Circle())
+                                        .offset(x: 8, y: -8)
+                                }
+                            }
+                    }
+                }
             }
-            .task { await vm.load() }
-            .refreshable { await vm.load() }
+            .task { await vm.load(); await pendingVM.load() }
+            .refreshable { await vm.load(); await pendingVM.load() }
+            .sheet(isPresented: $showPending, onDismiss: { Task { await pendingVM.load() } }) {
+                PendingLikesView(vm: pendingVM)
+            }
         }
     }
 }
@@ -323,5 +348,5 @@ struct BrowseMessageView: View {
         DuoProfileDTO(id: UUID(), memberA: UUID(), memberB: UUID(), photos: [],
                       bio: "Hiking, board games, and questionable karaoke.",
                       activeWeek: 0, reliabilityScore: 0, status: "active", createdAt: Date())
-    ]))
+    ]), pendingViewModel: PendingLikesViewModel(sample: []))
 }
